@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aventura del Conejito</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #gameArea {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background-color: #fff;
+            border: none;
+        }
+        #player {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            top: 350px;
+            left: 50px;
+            background-color: pink;
+            border-radius: 50%;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+        }
+        #player:before {
+            content: '';
+            position: absolute;
+            top: -15px;
+            left: 5px;
+            width: 15px;
+            height: 20px;
+            background-color: pink;
+            border-radius: 50%;
+        }
+        #player:after {
+            content: '';
+            position: absolute;
+            top: -15px;
+            left: 20px;
+            width: 15px;
+            height: 20px;
+            background-color: pink;
+            border-radius: 50%;
+        }
+        .mensaje {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 18px;
+            font-family: Arial, sans-serif;
+        }
+        .nivel {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            font-size: 16px;
+            color: #fff;
+        }
+        .obstaculo {
+            width: 40px;
+            height: 40px;
+            position: absolute;
+            bottom: 0;
+            background-color: #333;
+            border-radius: 10px;
+        }
+        /* Fondos */
+        .fondo-nivel1 {
+            background-image: url('https://images.unsplash.com/photo-1506748686213-fd6a66fdb8a0?crop=entropy&cs=tinysrgb&fit=max&ixid=MXwyMDg0MnwwfDF8c2VhcmNofDJ8fGZvcmVzdHxlbnwwfHx8fDE2ODI4NjYwNjQ&ixlib=rb-1.2.1&q=80&w=1080');
+            background-size: cover;
+        }
+        .fondo-nivel2 {
+            background-image: url('https://images.unsplash.com/photo-1519151014575-779af63d8a7b?crop=entropy&cs=tinysrgb&fit=max&ixid=MXwyMDg0MnwwfDF8c2VhcmNofDExfGJpZyUyMGFuZCUyMGRldmluaXRob29d&ixlib=rb-1.2.1&q=80&w=1080');
+            background-size: cover;
+        }
+        .fondo-nivel3 {
+            background-image: url('https://images.unsplash.com/photo-1561043450-31a0f4e84be0?crop=entropy&cs=tinysrgb&fit=max&ixid=MXwyMDg0MnwwfDF8c2VhcmNofDExfG5pZ2h0JTIwbmV3c3xlbnwwfHx8fDE2ODI4NjYwNjQ&ixlib=rb-1.2.1&q=80&w=1080');
+            background-size: cover;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameArea" class="fondo-nivel1">
+        <div id="player"></div>
+        <div class="mensaje" id="mensaje">¡Usa las teclas de flecha para mover al conejito!</div>
+        <div class="nivel" id="nivel">Nivel: 1</div>
+    </div>
+
+    <script>
+        // Variables del juego
+        const player = document.getElementById('player');
+        const gameArea = document.getElementById('gameArea');
+        const mensaje = document.getElementById('mensaje');
+        const nivelTexto = document.getElementById('nivel');
+
+        const gameWidth = window.innerWidth;
+        const gameHeight = window.innerHeight;
+        const playerSize = 40;
+        const gravedad = 0.8;  // Gravedad para el salto
+
+        let posX = 50;
+        let posY = 350;
+        let velocidadY = 0; // Velocidad vertical del salto
+        let nivel = 1;
+
+        // Obstáculos en el juego
+        const obstacles = [];
+        let score = 0;
+
+        // Función para mover al jugador
+        function moverJugador() {
+            player.style.left = posX + 'px';
+            player.style.top = posY + 'px';
+        }
+
+        // Función para crear obstáculos
+        function crearObstaculo() {
+            const obstaculo = document.createElement('div');
+            obstaculo.classList.add('obstaculo');
+            obstaculo.style.left = gameWidth + 'px';
+            obstaculo.style.bottom = '0px';
+            gameArea.appendChild(obstaculo);
+            obstacles.push(obstaculo);
+        }
+
+        // Mover obstáculos
+        function moverObstaculos() {
+            for (let i = 0; i < obstacles.length; i++) {
+                const obstaculo = obstacles[i];
+                let posObstaculo = parseInt(obstaculo.style.left);
+                posObstaculo -= 5;
+                obstaculo.style.left = posObstaculo + 'px';
+
+                // Eliminar obstáculos fuera de pantalla
+                if (posObstaculo < -40) {
+                    gameArea.removeChild(obstaculo);
+                    obstacles.splice(i, 1);
+                    score++;
+                }
+
+                // Verificar colisión con el jugador
+                if (posObstaculo > posX && posObstaculo < posX + playerSize && posY + playerSize >= gameHeight - 40) {
+                    if (posY === gameHeight - 40) {
+                        mensaje.innerText = '¡Oh no! Has chocado con un obstáculo';
+                        setTimeout(() => {
+                            location.reload();  // Recargar el juego después de un choque
+                        }, 1000);
+                    }
+                }
+            }
+        }
+
+        // Salto del jugador
+        function saltar() {
+            if (posY === gameHeight - 40) {
+                velocidadY = -15;  // Velocidad inicial del salto
+            }
+        }
+
+        // Actualizar la física del juego
+        function actualizarFisica() {
+            if (posY < gameHeight - 40) {
+                velocidadY += gravedad;
+                posY += velocidadY;
+            } else {
+                posY = gameHeight - 40;
+                velocidadY = 0;
+            }
+            moverJugador();
+        }
+
+        // Cambiar fondo y nivel
+        function cambiarNivel() {
+            if (nivel === 1 && posX >= gameWidth - 50) {
+                nivel = 2;
+                mensaje.innerText = '¡Nivel 2! ¡Sigue moviéndote!';
+                nivelTexto.innerText = 'Nivel: 2';
+                gameArea.className = 'fondo-nivel2';
+                posX = 50;
+            } else if (nivel === 2 && posX >= gameWidth - 50) {
+                nivel = 3;
+                mensaje.innerText = '¡Nivel 3! ¡Casi lo logras!';
+                nivelTexto.innerText = 'Nivel: 3';
+                gameArea.className = 'fondo-nivel3';
+                posX = 50;
+            } else if (nivel === 3 && posX >= gameWidth - 50) {
+                mensaje.innerText = '¡Felicidades! Has llegado al final...';
+                nivelTexto.innerText = 'Nivel: 3';
+                mostrarPregunta();
+            }
+        }
+
+        // Mostrar la pregunta al final
+        function mostrarPregunta() {
+            setTimeout(() => {
+                mensaje.innerText = '¿Quieres ser mi novia?';
+                let botonAceptar = document.createElement('button');
+                botonAceptar.innerText = 'Sí';
+                botonAceptar.onclick = function() {
+                    alert('¡Lo lograste! Mi respuesta es... ¡Sí, quiero ser tu novia!');
+                };
+                document.body.appendChild(botonAceptar);
+            }, 500);
+        }
+
+        // Control del teclado
+        window.addEventListener('keydown', function(e) {
+            switch (e.key) {
+                case 'ArrowUp':
+                    saltar();
+                    break;
+                case 'ArrowRight':
+                    if (posX < gameWidth - playerSize) posX += 10;  // Mueve hacia la derecha
+                    break;
+            }
+        });
+
+        // Llamar a las funciones de actualización
+        function actualizarJuego() {
+            moverObstaculos();
+            actualizarFisica();
+            cambiarNivel();
+            requestAnimationFrame(actualizarJuego);
+        }
+
+        // Crear obstáculos cada 2 segundos
+        setInterval(crearObstaculo, 2000);
+
+        // Iniciar el juego
+        actualizarJuego();
+    </script>
+</body>
+</html>
